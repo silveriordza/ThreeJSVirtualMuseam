@@ -47,7 +47,7 @@ document.body.appendChild(renderer.domElement)
 
 //Add some lights to light the scene
 //First parameter is color, then intensity, and the 3rd (not used here), is the distance and the 4th is the decay.
-let ambientLight = new THREE.AmbientLight(0x101010, 1.0)
+const ambientLight = new THREE.AmbientLight(0xdddddd, 1.0)
 
 //the light will follow the camera
 ambientLight.position = camera.position 
@@ -78,6 +78,105 @@ scene.add(cube) //we will add the mesh (object) to the scene.
 //Controls
 //Event Listener for when we press the keys
 document.addEventListener("keydown", onKeyDown, false)
+
+//Create the floor plane.
+/*
+BoxGeometry is the shape of the object, parameters are width and height. You can see the documentation of Three.js in https://threejs.org/ 
+*/
+
+/**
+ * The textures are images that are applied to the geometries or shapes. 
+ * Alpha texture, transparency. 
+ * More complex textures: hight texture: move vertices to create some releave.
+ * Normal textures: it has small details in the textures, it won't move the vertices. 
+ * Metal texture: gives the look of metallic.
+ * Loveness texture: waithe and black, the parts move. 
+ * You can search more textures in the documentation. 
+ * PVR is now everywhere in the most advanced softwares, this is becoming standard for more realistic renders.
+ * UnitEngine (favorite), Imagine, Blender and many others, they are using PVR for realistic textures. 
+ */
+
+/**
+ * To add a texture first you have to load it with the TextureLoader function
+ */
+//Texture for the floor
+const floorTexture = new THREE.TextureLoader().load('img/Floor.jpg') //this code worked for me but not for the trainer, he changed it to use ImageUtils instead
+//let floorTexture = new THREE.ImageUtils.loadTexture('img/Floor.jpg')//When I tried the ImageUtils it didn't worked for me only for the trainer, I went back to TextureLoader.
+
+floorTexture.wrapS = THREE.RepeatWrapping  //repeat on the horizontal direction.
+floorTexture.wrapT = THREE.RepeatWrapping  //repeat on the vertical direction.
+floorTexture.repeat.set(20,20)
+
+const planeGeometry =  new THREE.PlaneGeometry(50, 50)
+const planeMaterial =  new THREE.MeshBasicMaterial({
+    //color: 'green', //this will give the color green to the shape. If you are using Textures instead, then do not use color and use map parameter instead as shown below.
+    map: floorTexture, // to add a texture, use map parameter here and remove the color parameter.
+    side: THREE.DoubleSide, //this will render both sides of the plane.
+})
+
+const floorPlane = new THREE.Mesh(planeGeometry, planeMaterial)
+
+ floorPlane.rotation.x = Math.PI / 2 //This is 90 degrees rotation.
+ floorPlane.position.y = -Math.PI //This is 180 degrees position.
+
+scene.add(floorPlane)
+
+//Create the walls
+/**
+ * Because we need several walls, we can create a group of objects in THREE JS.
+ * 
+ */
+const wallGroup = new THREE.Group()
+scene.add(wallGroup)
+
+//Create the front wall
+const frontWall = new THREE.Mesh(
+    new THREE.BoxGeometry(50, 20, 0.001), //This receives 3 parameters, width, height and dept. For wall we need depth to be thin so it is a wall and not a box, so dept is 0.001.
+    new THREE.MeshBasicMaterial({color: 'green'}),
+)
+
+frontWall.position.z = -20 //Move the front wall back to is not to close to the camara and to give more space in the room. 
+
+//Create the left wall
+const leftWall = new THREE.Mesh(
+    new THREE.BoxGeometry(50, 20, 0.001),
+    new THREE.MeshBasicMaterial ({
+        color: 'red'
+    })
+)
+
+//Move the left wall 90 degrees to rotate it to the left
+leftWall.rotation.y = Math.PI / 2 //this is 90 degrees rotation
+leftWall.position.x = -20
+
+//Right Wall
+const rightWall = new THREE.Mesh(
+    new THREE.BoxGeometry (50, 20, 0.001),
+    new THREE.MeshBasicMaterial ({
+        color: 'yellow'
+    })
+)
+
+//Move the right wall 90 degrees to rotate it to the left
+rightWall.rotation.y = Math.PI / 2 //this is 90 degrees rotation
+rightWall.position.x = 20
+
+//Create the ceiling
+const ceilingGeometry = new THREE.PlaneGeometry(50, 50) //BoxGeometry is the shape of the object
+const ceilingMaterial =  new THREE.MeshBasicMaterial({
+    color: 'blue'
+})
+
+const ceilingPlane= new THREE.Mesh(ceilingGeometry, ceilingMaterial)
+
+ceilingPlane.rotation.x =  Math.PI / 2 //Rotate 90 degrees to move the ceiling to the top.
+ceilingPlane.position.y = 12
+
+scene.add(ceilingPlane)
+
+wallGroup.add(frontWall, leftWall, rightWall)
+
+
 
 //Function when a key is pressed, execute this function
 function onKeyDown(event) {
