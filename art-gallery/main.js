@@ -212,28 +212,60 @@ const painting2 = createPainting(
 
 scene.add(painting1, painting2)
 
+//Controls for hiding the Virtual Museum Menu
+/**
+ * The PointerLockControl is attached to the camera and the document.body of the HTML.
+ */
+const controls = new PointerLockControls(camera, document.body)
+
+//Lock the pointer (controls are activated) and hide the menu when the experience starts
+function startExperience(){
+    //Lock the pointer
+    controls.lock()
+    //Hide the menu
+    hideMenu()
+}
+
+const playButton = document.getElementById("play_button")
+playButton.addEventListener("click", startExperience)
+
+//Hide menu function
+function hideMenu()
+{
+    const menu = document.getElementById("menu")
+    menu.style.display = 'none'
+}
+
+//Show menu function
+function showMenu()
+{
+    const menu = document.getElementById("menu")
+    menu.style.display = 'block'
+}
+
+controls.addEventListener('unlock', showMenu)
+
 //Function when a key is pressed, execute this function
 function onKeyDown(event) {
     let keycode = event.which
 
-    //right arrow key
-    if(keycode === 39) {
-        camera.translateX(-0.05)
+    //right arrow key or keboard D
+    if(keycode === 39 || keycode === 68) {
+        controls.moveRight(0.08)
     } 
-    //left arrow key
-    else if (keycode === 37){
-        camera.translateX(0.05)
+    //left arrow key, or keyboard A
+    else if (keycode === 37 || keycode === 65){
+        controls.moveRight(-0.08)
     }
-    //up arrow key
-    else if (keycode === 38){
-        camera.translateY(-0.05)
+    //up arrow key, or keyboard W 
+    else if (keycode === 38 || keycode === 87){
+        controls.moveForward(0.08)
     }
-    //down arrow key
-    else if (keycode === 40){
-        camera.translateY(0.05)
+    //down arrow key, or keyboard S
+    else if (keycode === 40 || keycode === 83){
+        controls.moveForward(-0.08)
     }
 }
-
 
 //We need a function for the animations
 let render = function (){ 

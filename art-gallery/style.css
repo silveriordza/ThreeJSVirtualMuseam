@@ -146,7 +146,8 @@ canvas {
 
 #menu #content {
   padding: 1em;
-  color: white
+  color: black;
+  background-color: white;
 }
 
 #menu #content p {
@@ -154,7 +155,7 @@ canvas {
   line-height: 1.6em;
   margin: 0.5em 0;
 }
-
+ 
 #menu #play_button {
   display: inline-block;
   background-color: rgba(52, 58, 125, 0.8);
