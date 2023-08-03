@@ -1,6 +1,8 @@
 //console.log('Three object here', THREE)
 import * as THREE from 'three'
 import {PointerLockControls} from 'three-stdlib'
+import {displayPaintingInfo, hidePaintingInfo} from './paintingInfo'
+
 /* 
 Start with creating a Canvas.
 Create the scene.
@@ -78,7 +80,6 @@ scene.add(cube) //we will add the mesh (object) to the scene.
 
 //Controls
 //Event Listener for when we press the keys
-document.addEventListener("keydown", onKeyDown, false)
 
 //Create the floor plane.
 /*
@@ -122,10 +123,17 @@ const floorPlane = new THREE.Mesh(planeGeometry, planeMaterial)
 
 scene.add(floorPlane)
 
+// Add Textures for the walls:
+const wallTexture = new THREE.TextureLoader().load('src/public/img/white-texture.jpg') //this code worked for me but not for the trainer, he changed it to use 
+
+wallTexture.wrapS = THREE.RepeatWrapping  //repeat on the horizontal direction.
+wallTexture.wrapT = THREE.RepeatWrapping  //repeat on the vertical direction.
+wallTexture.repeat.set(1,1)
+
 //Create the walls
 /**
  * Because we need several walls, we can create a group of objects in THREE JS.
- * 
+ *  
  */
 const wallGroup = new THREE.Group()
 scene.add(wallGroup)
@@ -133,17 +141,23 @@ scene.add(wallGroup)
 //Create the front wall
 const frontWall = new THREE.Mesh(
     new THREE.BoxGeometry(50, 20, 0.001), //This receives 3 parameters, width, height and dept. For wall we need depth to be thin so it is a wall and not a box, so dept is 0.001.
-    new THREE.MeshLambertMaterial({color: 'green'}),
+    new THREE.MeshBasicMaterial({map: wallTexture}),
 )
 
 frontWall.position.z = -20 //Move the front wall back to is not to close to the camara and to give more space in the room. 
 
+//Create the front wall
+const backWall = new THREE.Mesh(
+    new THREE.BoxGeometry(50, 20, 0.001), //This receives 3 parameters, width, height and dept. For wall we need depth to be thin so it is a wall and not a box, so dept is 0.001.
+    new THREE.MeshBasicMaterial({map: wallTexture}),
+)
+
+backWall.position.z = 20  //Move the front wall back to is not to close to the camara and to give more space in the room. 
+
 //Create the left wall
 const leftWall = new THREE.Mesh(
     new THREE.BoxGeometry(50, 20, 0.001),
-    new THREE.MeshLambertMaterial ({
-        color: 'red'
-    })
+    new THREE.MeshBasicMaterial({map: wallTexture}),
 )
 
 //Move the left wall 90 degrees to rotate it to the left
@@ -153,9 +167,7 @@ leftWall.position.x = -20
 //Right Wall
 const rightWall = new THREE.Mesh(
     new THREE.BoxGeometry (50, 20, 0.001),
-    new THREE.MeshLambertMaterial ({
-        color: 'yellow'
-    })
+    new THREE.MeshBasicMaterial({map: wallTexture}),
 )
 
 //Move the right wall 90 degrees to rotate it to the left
@@ -164,9 +176,7 @@ rightWall.position.x = 20
 
 //Create the ceiling
 const ceilingGeometry = new THREE.PlaneGeometry(50, 50) //BoxGeometry is the shape of the object
-const ceilingMaterial =  new THREE.MeshLambertMaterial({
-    color: 'blue'
-})
+const ceilingMaterial =  new THREE.MeshLambertMaterial({map: wallTexture})
 
 const ceilingPlane= new THREE.Mesh(ceilingGeometry, ceilingMaterial)
 
@@ -175,7 +185,35 @@ ceilingPlane.position.y = 12
 
 scene.add(ceilingPlane)
 
-wallGroup.add(frontWall, leftWall, rightWall)
+wallGroup.add(frontWall, backWall, leftWall, rightWall)
+
+// Loop through each wall and create the bounding box for each wall
+for (let i = 0; i < wallGroup.children.length; i++) {
+    wallGroup.children[i].BoundingBox = new THREE.Box3()
+    wallGroup.children[i].BoundingBox.setFromObject(wallGroup.children[i])
+}
+
+function checkCollision(){
+    const playerBoundingBox = new THREE.Box3() //create a bounding box for the player
+    const cameraWorldPosition = new THREE.Vector3() //create a vector to hold the camera position
+
+    camera.getWorldPosition(cameraWorldPosition)// get teh camera position and store it in the vector. Note: the camera represents the player's position in our case
+    playerBoundingBox.setFromCenterAndSize(
+        // setFromCenterAndSize is a method that takes the center and size of the box. We set the player's bounding box size and center it on the camera's world position.
+        cameraWorldPosition,
+        new THREE.Vector3 (1,1,1)
+    )
+    
+    // loop through each wall
+    for (let i = 0; i < wallGroup.children.length; i++) {
+        const wall = wallGroup.children[i] //get the wall
+        if(playerBoundingBox.intersectsBox(wall.BoundingBox)){
+            //check if the player's bounding box intersects with any of the wall bounding boxes
+            return true // If it does, return true
+        }
+    }
+    return false // If it doesn't, return false
+}
 
 function createPainting(imageUrl, width, height, position){
     const textureLoader = new THREE.TextureLoader()
@@ -202,6 +240,64 @@ const painting2 = createPainting(
         5,
         new THREE.Vector3(10, 5, -19.99)
         )
+// Paiting on the left wall
+const painting3 = createPainting(
+            './src/public/img/Fireworks.jpg',
+            10,
+            5,
+            new THREE.Vector3(-19.99, 5, -10)
+            )
+
+painting3.rotation.y = Math.PI / 2 // 90 degrees. If we don't rotate this, it will show up in teh front of us instead of lying on the left wall.
+
+//Paiting on the right wall (near the front wall)
+const painting4 = createPainting(
+    './src/public/img/Fireworks.jpg',
+    10,
+    5,
+    new THREE.Vector3(19.99, 5, -10)
+    )
+
+painting4.rotation.y = -Math.PI / 2 // -90 degrees. If we don't rotate this, it will show up in teh front of us instead of lying on the left wall.
+
+// Painting on the left wall (near the back wall)
+const painting5 = createPainting(
+    './src/public/img/Fireworks.jpg',
+    10,
+    5,
+    new THREE.Vector3(-19.5, 5, 10)
+    )
+
+painting5.rotation.y = Math.PI / 2 // 90 degrees. If we don't rotate this, it will show up in teh front of us instead of lying on the left wall.
+
+const painting6 = createPainting(
+    './src/public/img/Fireworks.jpg',
+    10,
+    5,
+    new THREE.Vector3(-19.5, 5, 10)
+    )
+
+painting6.rotation.y = Math.PI / 2 // 90 degrees. If we don't rotate this, it will show up in teh front of us instead of lying on the left wall.
+
+// Painting on the back wall at the left
+const painting7 = createPainting(
+    './src/public/img/Fireworks.jpg',
+    10,
+    5,
+    new THREE.Vector3(-10, 5, 19.5)
+    )
+
+painting7.rotation.y = Math.PI // 180 degrees. If we don't rotate this, it will show up in teh front of us instead of lying on the left wall.
+
+// Painting on the back wall at the left
+const painting8 = createPainting(
+    './src/public/img/Fireworks.jpg',
+    10,
+    5,
+    new THREE.Vector3(10, 5, 19.5)
+    )
+
+painting8.rotation.y = Math.PI // 180 degrees. If we don't rotate this, it will show up in teh front of us instead of lying on the left wall.
 
 //Loop through each wall and create the bounding box
 //The bounding box is for creating a colider so the person walking in the room colide with the walls and cannot pass thru the walls.
@@ -210,7 +306,7 @@ const painting2 = createPainting(
 //     wallGroup.children[i].BBox.setFromObject(wallGroup.children[i])
 // }
 
-scene.add(painting1, painting2)
+scene.add(painting1, painting2, painting3, painting4, painting5, painting6, painting7, painting8)
 
 //Controls for hiding the Virtual Museum Menu
 /**
@@ -245,39 +341,106 @@ function showMenu()
 
 controls.addEventListener('unlock', showMenu)
 
-//Function when a key is pressed, execute this function
-function onKeyDown(event) {
-    let keycode = event.which
+// //Function when a key is pressed, execute this function
+// function onKeyDown(event) {
+//     let keycode = event.which
 
-    //right arrow key or keboard D
-    if(keycode === 39 || keycode === 68) {
-        controls.moveRight(0.08)
-    } 
-    //left arrow key, or keyboard A
-    else if (keycode === 37 || keycode === 65){
-        controls.moveRight(-0.08)
+//     //right arrow key or keboard D
+//     if(keycode === 39 || keycode === 68) {
+//         controls.moveRight(0.08)
+//     } 
+//     //left arrow key, or keyboard A
+//     else if (keycode === 37 || keycode === 65){
+//         controls.moveRight(-0.08)
+//     }
+//     //up arrow key, or keyboard W 
+//     else if (keycode === 38 || keycode === 87){
+//         controls.moveForward(0.08)
+//     }
+//     //down arrow key, or keyboard S
+//     else if (keycode === 40 || keycode === 83){
+//         controls.moveForward(-0.08)
+//     }
+// }
+
+//Object to hold the keys pressed
+const keysPressed = {
+    ArrowUp: false,
+    ArrowDown: false,
+    ArrowLeft: false,
+    ArrowRight: false,
+    w: false,
+    a: false,
+    s: false,
+    d: false
+}
+
+// Event listener for when we press the keys.
+// The event is triggered only once when the user pressed. To keep the movement going we have to separate the keydown from keyup.
+document.addEventListener(
+    'keydown', //`keydown` is an event that fires when a key is pressed
+    (event) => {
+        if(event.key in keysPressed){
+            //check if the key pressed is in the keysPressed object
+            keysPressed[event.key] = true //if it is, set the value to true
+        }
+    }, 
+    false
+    )
+// Event listener for when we release the keys
+document.addEventListener(
+    'keyup', //`keyup` is an event that fires when a key is released
+    (event) => {
+        if(event.key in keysPressed){
+            //check if the key pressed is in the keysPressed object
+            keysPressed[event.key] = false //if it is, set the value to false
+        }
+    }, 
+    false
+    )
+
+
+const clock = new THREE.Clock()
+
+function udpateMovement(delta){
+    const moveSpeed = 5 * delta //moveSpeed is the distance the camera will move in one second. We multiply by delta to make the movement framerate independent. This means that the movement will be the same regardless of the framerate. This is important because if the framerate is low, the movement will be slow and if the frame rate is high, the movement will be fast. This is not what we want. We want the movement to be the same regardless of the framerate. 
+
+    const previousPosition =  camera.position.clone() //clone the camera position before the movement
+
+    if(keysPressed.ArrowRight || keysPressed.d) {
+        controls.moveRight(moveSpeed)
     }
-    //up arrow key, or keyboard W 
-    else if (keycode === 38 || keycode === 87){
-        controls.moveForward(0.08)
+    if(keysPressed.ArrowLeft || keysPressed.a){
+        controls.moveRight(-moveSpeed)
     }
-    //down arrow key, or keyboard S
-    else if (keycode === 40 || keycode === 83){
-        controls.moveForward(-0.08)
+    if(keysPressed.ArrowUp || keysPressed.w){
+        controls.moveForward(moveSpeed)
     }
+    if(keysPressed.ArrowDown || keysPressed.s){
+        controls.moveForward(-moveSpeed)
+    }
+
+    //After the movement is applied, we check for collisions by calling the checkCollision function. If a collision is detected, we revert the camera's position to its previous position, effectively preventing the player from moving through walls.
+    // if(checkCollision()){
+    //     camera.position.copy(previousPosition) //reset the camera position to the previous position. The `previousPosition` variable is a clone of the camera position before the movement. 
+    // }
 }
 
 //We need a function for the animations
 let render = function (){ 
+    const delta = clock.getDelta() //get the time between frames
+    udpateMovement(delta) //update the movement with the time between frames
 
+    const distanceThreshold = 8 //set a distance threashold (8 units)
 
-    //We wan to rotate the cube
-    cube.rotation.x += 0.01
-    cube.rotation.y += 0.01
-    //Render the scene: it is like a screenshot of the scene taken with the camera. Need the camera and the scene to take screenshot
-    renderer.render(scene, camera)
-    requestAnimationFrame(render)
-}
+    let paintingToShow // variable responsible to store the value where we want to how or not show the painting.
+    // //We wan to rotate the cube
+    // cube.rotation.x += 0.01
+    // cube.rotation.y += 0.01
+    // //Render the scene: it is like a screenshot of the scene taken with the camera. Need the camera and the scene to take screenshot
+    renderer.render(scene, camera) //render the scene
+    requestAnimationFrame(render) //requestAnimationFrame is a method that calls teh render function before the next repaint. This is used to render teh scene at 60 frames per second and is more efficient than using setInterval because it only renders when the browser is ready to repaint. 
+ }
 
 /*
 Steps to make the objects move
